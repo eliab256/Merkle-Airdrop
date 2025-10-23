@@ -6,12 +6,14 @@ import {MerkleProof} from "@openzeppelin/contracts/utils/cryptography/MerkleProo
 contract MerkleAirdrop {
     using SafeERC20 for IERC20;
     error MerkleAirdrop__MerkleProofNotValid();
+    error MerkleAirdrop__AlreadyClaimed();
 
     event Claim(address account, uint256 amount);
     // some list of addresses
     address[] public claimers;
     bytes32 private immutable i_markleRoot;
     IERC20 private immutable i_airdropToken;
+    mapping(address => bool) public s_hasClaimed;
 
     constructor(bytes32 _markleRoot, IERC20 _airdropToken){
         i_markleRoot = _markleRoot;
@@ -19,12 +21,24 @@ contract MerkleAirdrop {
     }
 
     function claim(address _account, uint256 _amount, bytes32[] calldata markleProof) external {
+        if(s_hasClaimed[_account]){ 
+            revert MerkleAirdrop__AlreadyClaimed();
+        }
         bytes32 leaf = keccak256(bytes.concat(keccak256(abi.encode(_account, _amount))));
         if(!MerkleProof.verify(markleProof, i_markleRoot, leaf)) {
             revert MerkleAirdrop__MerkleProofNotValid();
         }
+        s_hasClaimed[_account] = true;
         emit Claim(_account, _amount);
         i_airdropToken.safeTransfer(_account, _amount);
+    }
+
+    function getMerkleRoot() external view returns (bytes32){
+        return i_markleRoot;
+    }
+
+    function getAirdroptoken() external view returns (IERC20){
+        return i_airdropToken;
     }
 
 }
