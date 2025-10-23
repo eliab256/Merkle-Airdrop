@@ -27,4 +27,6 @@ contract MerkleAirdrop {
         i_airdropToken.safeTransfer(_account, _amount);
     }
 
+    //prova push
+
 }
